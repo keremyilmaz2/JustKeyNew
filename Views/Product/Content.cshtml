@@ -10,52 +10,41 @@
     </div>
     <div class="card-body p-4">
         <form method="post" class="row" enctype="multipart/form-data">
-            <input asp-for="Product.Id" hidden />
+            <input asp-for="Product.Id" type="hidden" />
+
             <div class="row">
                 <div class="col-10">
                     <div class="border p-3">
                         <div class="form-floating py-2 col-12">
                             <input asp-for="Product.Title" class="form-control border-0 shadow" />
                             <label asp-for="Product.Title" class="ms-2"></label>
-
                             <span asp-validation-for="Product.Title" class="text-danger"></span>
                         </div>
 
-                        @foreach (var material in Model.CategoryMaterials)
-                        {
-                            if (material.Value == Model.Product.CategoryId.ToString())
+                        <div class="form-floating py-2 col-12">
+                            @for (int i = 0; i < Model.Product.ProductMaterials.Count; i++)
                             {
-                                <div class="form-floating py-2 col-12">
-                                    <input asp-for="@material.Text" value="0" class="form-control border-0 shadow" />
-                                    <label  class="ms-2">@material.Text</label>
-                                    <span asp-validation-for="@material.Text" class="text-danger"></span>
+                                <div class="form-floating py-2 col-12" id="materialId">
+                                    <input asp-for="Product.ProductMaterials[i].Amount"  class="form-control border-0 shadow" />
+                                    <label>@Model.Product.ProductMaterials[i].MaterialName</label>
+                                    <input asp-for="Product.ProductMaterials[i].MaterialName" type="hidden" />
+                                    <input asp-for="Product.ProductMaterials[i].ProductId" type="hidden" />
+                                    <span class="text-danger"></span>
                                 </div>
-
                             }
-                        }
-                        
+                        </div>
 
                         <div class="row pt-2">
                             <div class="col-6 col-md-3">
-                                
                                 <button type="submit" class="btn btn-primary form-control">Update</button>
-                                
                             </div>
                             <div class="col-6 col-md-3">
-
-                                <a asp-controller="Product" asp-action="Index" class="btn btn-outline-primary border form-control">
-                                    Back To Page
-                                </a>
+                                <a asp-controller="Product" asp-action="Index" class="btn btn-outline-primary border form-control">Back To Page</a>
                             </div>
                         </div>
-
-
                     </div>
                 </div>
-                
             </div>
-
-
         </form>
     </div>
 </div>

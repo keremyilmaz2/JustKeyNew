@@ -7,58 +7,62 @@
                 <h2 class="text-white py-2 ">Product List</h2>
             </div>
         </div>
-
     </div>
     <div class="card-body p-4">
-
         <div class="row pb-3">
             <div class="col-6">
             </div>
             <div class="col-6 text-end">
                 <a asp-controller="Product" asp-action="Upsert" class="btn btn-primary"><i class="bi bi-plus-circle"></i>Create New Category</a>
             </div>
-
         </div>
         <div class="d-flex justify-content-between pb-5 pt-2">
-            <span></span>
-            <ul class="list-group list-group-horizontal-sm">
-                <a style="text-decoration:none;" asp-controller="Product" asp-action="GetAll" asp-route-status="All">
-                <li class="list-group-item text-primary">All</li>
-                </a>
-                @foreach (var category in Model.CategoryList)
-                {
-                    <a style="text-decoration:none;" asp-controller="Product" asp-action="GetAll" asp-route-status="@category.Text">
-                    <li class="list-group-item text-primary">@category.Text</li>
-                    </a>
-                }
-                
-                
-            </ul>
+            <form asp-controller="Product" asp-action="Index" method="get">
+                <select name="status" class="form-select border-0 shadow" onchange="this.form.submit()">
+                    <option disabled selected>
+                        --Select Category--
+                    </option>
+                    @foreach (var category in Model.CategoryList)
+                    {
+                        <option value="@category.Text">@category.Text</option>
+                    }
+                    <option value="All">All</option>
+                </select>
+            </form>
         </div>
+
+
 
         <table id="tblData" class="table table-bordered table-striped" style="width:100%">
             <thead>
                 <tr>
-                    <th>
-                        Title
-                    </th>
-                    
-                    <th>
-                        Price
-                    </th>
-
-                    <th>
-                        Category
-                    </th>
+                    <th>Title</th>
+                    <th>Price</th>
+                    <th>Category</th>
                     <th></th>
-
                 </tr>
             </thead>
+            <tbody>
+                @foreach (var product in Model.ProductList)
+                {
+                    <tr>
+                        <td>@product.Title</td>
+                        <td>@product.Price</td>
+                        <td>@product.Category.Name</td>
+                        <td>
+                            <div class="w-75 btn-group" role="group">
+                                <a asp-controller="Product" asp-action="Upsert" asp-route-id="@product.Id" class="btn btn-primary mx-2">
+                                    <i class="bi bi-pencil-square"></i> Edit
+                                </a>
+                                <a asp-controller="Product" asp-action="Delete" asp-route-id="@product.Id" class="btn btn-danger mx-2">
+                                    <i class="bi bi-trash-fill"></i> Delete
+                                </a>
 
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
         </table>
     </div>
 </div>
-
-@section Scripts {
-    <script src="~/js/product.js"></script>
-}

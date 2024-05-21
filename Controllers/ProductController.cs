@@ -21,22 +21,40 @@ namespace JustKeyNew.Controllers
             _unitOfWork = unitOfWork;
             _webHostEnvironment = webHostEnvironment;
         }
-        public IActionResult Index()
+        public IActionResult Index(string status)
         {
-            //List<Product> objProductList = _unitOfWork.Product.GetAll(includeProperties: "Category").ToList();
-            ProductVM productVM = new()
+            ProductVM productVM = new ProductVM
             {
                 CategoryList = _unitOfWork.Category.GetAll().Select(u => new SelectListItem
                 {
                     Text = u.Name,
                     Value = u.Id.ToString()
-                }),
-                Product = new Product()
+                }).ToList()
             };
 
+            if (!string.IsNullOrEmpty(status))
+            {
+                if (status == "All")
+                {
+                    var products = _unitOfWork.Product.GetAll(includeProperties: "Category").ToList();
+                    productVM.ProductList = products;
+                }
+                else
+                {
+                    var products = _unitOfWork.Product.GetAll(includeProperties: "Category").Where(u => u.Category.Name == status).ToList();
+                    productVM.ProductList = products;
+                }
+                
+            }
+            else
+            {
+                var products = _unitOfWork.Product.GetAll(includeProperties: "Category").ToList();
+                productVM.ProductList = products;
+            }
 
             return View(productVM);
         }
+
 
         public IActionResult Upsert(int? id)
         {
@@ -64,35 +82,22 @@ namespace JustKeyNew.Controllers
                 return View(productVM);
             }
         }
-        public IActionResult Content(int? id)
-        {
-            ProductVM productVM = new()
-            {
-                CategoryList = _unitOfWork.Category.GetAll().Select(u => new SelectListItem
-                {
-                    Text = u.Name,
-                    Value = u.Id.ToString()
-                }),
-                CategoryMaterials = _unitOfWork.CategoryMaterial.GetAll().Select(u => new SelectListItem
-                {
-                    Text = u.MaterialName,
-                    Value = u.CategoryId.ToString()
-                }),
-                Product = _unitOfWork.Product.Get(u => u.Id == id)
-            };
-            
-            return View(productVM);
-            
-        }
+
 
         [HttpPost]
-        public IActionResult Upsert(ProductVM productVM, IFormFile file)
+        public IActionResult Upsert(ProductVM productVM, IFormFile? file)
         {
+            if (productVM.Product.Id != 0)
+            {
+                var existingProduct = _unitOfWork.Product.Get(u => u.Id == productVM.Product.Id);
+                if (existingProduct != null)
+                {
+                    productVM.Product.ProductImageUrl = existingProduct.ProductImageUrl;
+                }
+            }
 
             if (ModelState.IsValid)
             {
-
-
                 string wwwRootPath = _webHostEnvironment.WebRootPath;
                 if (file != null)
                 {
@@ -122,6 +127,7 @@ namespace JustKeyNew.Controllers
 
                     productVM.Product.ProductImageUrl = @"\images\product\" + fileName;
                 }
+
                 if (productVM.Product.Id == 0)
                 {
                     _unitOfWork.Product.Add(productVM.Product);
@@ -132,6 +138,9 @@ namespace JustKeyNew.Controllers
                 }
 
                 _unitOfWork.Save();
+
+                TempData["success"] = "Product created/updated successfully.";
+                return RedirectToAction(nameof(Content), new { id = productVM.Product.Id });
             }
             else
             {
@@ -142,34 +151,93 @@ namespace JustKeyNew.Controllers
                 });
                 return View(productVM);
             }
-
-            TempData["success"] = "Product created/updated succesfully.";
-            return RedirectToAction(nameof(Content), new { id = productVM.Product.Id});
         }
 
-        #region API CALLS
-        [HttpGet]
-        public IActionResult GetAll(string status)
+
+        public IActionResult Content(int? id)
         {
-            IEnumerable<Product> objProductList = _unitOfWork.Product.GetAll(includeProperties: "Category").ToList();
-            List<Category> objCategoryList = _unitOfWork.Category.GetAll().ToList();
-            if (status == null) { status = "All"; }
-            foreach (var objCategory in objCategoryList) 
+            ProductVM productVM = new()
             {
-                if (objCategory.Name.ToLower() == status.ToLower())
+                CategoryList = _unitOfWork.Category.GetAll().Select(u => new SelectListItem
                 {
-                    objProductList = objProductList.Where(u => u.CategoryId == objCategory.Id).ToList();
-                    break;
-                }
-                if (status == "All")
+                    Text = u.Name,
+                    Value = u.Id.ToString()
+                }),
+                CategoryMaterials = _unitOfWork.CategoryMaterial.GetAll().Select(u => new SelectListItem
                 {
-                    objProductList = objProductList;
-                }
-            }
-            return Json(new { data = objProductList });
-        }
+                    Text = u.MaterialName,
+                    Value = u.CategoryId.ToString()
+                }),
+                Product = _unitOfWork.Product.Get(u => u.Id == id, includeProperties: "ProductMaterials")
+            };
 
-        [HttpDelete]
+            productVM.Product.ProductMaterials = new List<ProductMaterial>();
+            IEnumerable<CategoryMaterial> categoryMaterials = _unitOfWork.CategoryMaterial.GetAll(u => u.CategoryId == productVM.Product.CategoryId).ToList();
+
+            foreach (CategoryMaterial categoryMaterial in categoryMaterials)
+            {
+                productVM.Product.ProductMaterials.Add(new ProductMaterial
+                {
+                    MaterialName = categoryMaterial.MaterialName,
+                    Amount = 0,
+                    ProductId = productVM.Product.Id,
+                });
+            }
+
+            return View(productVM);
+
+        }
+        [HttpPost]
+        public IActionResult Content(ProductVM productVM)
+        {
+            var product = _unitOfWork.Product.Get(u => u.Id == productVM.Product.Id);
+            var materials = productVM.Product.ProductMaterials;
+            if (product != null)
+            {
+                _unitOfWork.ProductMaterial.RemoveRange(_unitOfWork.ProductMaterial.GetAll(u => u.ProductId == product.Id));
+                _unitOfWork.Save();
+                if (materials != null)
+                {
+
+                    foreach (var material in materials)
+                    {
+                        ProductMaterial productMaterial = new()
+                        {
+                            MaterialName = material.MaterialName,
+                            Amount = material.Amount,
+                            ProductId = product.Id
+                        };
+                        _unitOfWork.ProductMaterial.Add(productMaterial);
+                        _unitOfWork.Save();
+
+                        if (productVM.Product.ProductMaterials != null)
+                        {
+                            productVM.Product.ProductMaterials = new List<ProductMaterial>();
+                        }
+                        productVM.Product.ProductMaterials.Add(productMaterial);
+
+
+                    }
+                    Product saveproduct = new()
+                    {
+                        Id = product.Id,
+                        Title = product.Title,
+                        Description = product.Description,
+                        Price = product.Price,
+                        CategoryId = product.CategoryId,
+                        ProductImageUrl = product.ProductImageUrl,
+                        ProductMaterials = productVM.Product.ProductMaterials,
+
+                    };
+                    _unitOfWork.Product.Update(saveproduct);
+                    _unitOfWork.Save();
+                }
+
+            }
+
+            return RedirectToAction("Index");
+
+        }
         public IActionResult Delete(int? id)
         {
             var productToBeDelete = _unitOfWork.Product.Get(u => u.Id == id);
@@ -194,8 +262,60 @@ namespace JustKeyNew.Controllers
             _unitOfWork.Product.Remove(productToBeDelete);
             _unitOfWork.Save();
 
-            return Json(new { success = true, message = "Delete successful" });
+            return RedirectToAction("Index");
         }
+
+
+        #region API CALLS
+        [HttpGet]
+        public IActionResult GetAll(string status)
+        {
+            IEnumerable<Product> objProductList = _unitOfWork.Product.GetAll(includeProperties: "Category").ToList();
+            List<Category> objCategoryList = _unitOfWork.Category.GetAll().ToList();
+            if (status == null) { status = "All"; }
+            foreach (var objCategory in objCategoryList) 
+            {
+                if (objCategory.Name.ToLower() == status.ToLower())
+                {
+                    objProductList = objProductList.Where(u => u.CategoryId == objCategory.Id).ToList();
+                    break;
+                }
+                if (status == "All")
+                {
+                    objProductList = objProductList;
+                }
+
+            }
+            return Json(new { data = objProductList });
+        }
+
+        //[HttpDelete]
+        //public IActionResult Delete(int? id)
+        //{
+        //    var productToBeDelete = _unitOfWork.Product.Get(u => u.Id == id);
+        //    if (productToBeDelete == null)
+        //    {
+        //        return Json(new { success = false, message = "Error while deleting" });
+        //    }
+
+        //    string productPath = @"images\products\product-" + id;
+        //    string finalPath = Path.Combine(_webHostEnvironment.WebRootPath, productPath);
+
+        //    if (Directory.Exists(finalPath))
+        //    {
+        //        string[] filepaths = Directory.GetFiles(finalPath);
+        //        foreach (var filepath in filepaths)
+        //        {
+        //            System.IO.File.Delete(filepath);
+        //        }
+        //        Directory.Delete(finalPath);
+        //    }
+
+        //    _unitOfWork.Product.Remove(productToBeDelete);
+        //    _unitOfWork.Save();
+
+        //    return Json(new { success = true, message = "Delete successful" });
+        //}
         #endregion
     }
 }
