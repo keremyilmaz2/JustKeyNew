@@ -14,9 +14,9 @@ namespace JustKeyNew.Controllers
         private readonly IUnitOfWork _unitOfWork;
         private readonly ApplicationDbContext _context;
 
-        public MaterialController(IUnitOfWork unitOfWork,ApplicationDbContext context)
+        public MaterialController(IUnitOfWork unitOfWork, ApplicationDbContext context)
         {
-            _unitOfWork = unitOfWork;  
+            _unitOfWork = unitOfWork;
             _context = context;
         }
         public IActionResult Index()
@@ -54,8 +54,8 @@ namespace JustKeyNew.Controllers
         [HttpPost]
         public IActionResult Create(CategoryMaterialVM categoryMaterialVM)
         {
-            
-            if (ModelState.IsValid) 
+
+            if (ModelState.IsValid)
             {
                 categoryMaterialVM.CategoryList = _unitOfWork.Category.GetAll().Select(u => new SelectListItem
                 {
@@ -67,7 +67,7 @@ namespace JustKeyNew.Controllers
                 {
                     if (categoryMaterialVM.IsCategorySelected[i])
                     {
-                        
+
                         var selectedCategoryId = int.Parse(categoryMaterialVM.CategoryList.ElementAt(i).Value);
                         CategoryMaterial categoryMaterial = new()
                         {
@@ -79,7 +79,7 @@ namespace JustKeyNew.Controllers
                     }
                 }
 
-     
+
                 IEnumerable<Stock> objStockList = _unitOfWork.Stock.GetAll().ToList();
                 var existingItem = objStockList.FirstOrDefault(item => item.Name == categoryMaterialVM.CategoryMaterial.MaterialName);
                 if (existingItem == null)
@@ -93,19 +93,19 @@ namespace JustKeyNew.Controllers
                     _unitOfWork.Stock.Add(stock);
                     _unitOfWork.Save();
                 }
-                
+
 
                 TempData["success"] = "Material created succesfully.";
                 return RedirectToAction("Index");
             }
-            
+
             else
             {
                 categoryMaterialVM.CategoryList = _unitOfWork.Category.GetAll().Select(u => new SelectListItem
                 {
                     Text = u.Name,
                     Value = u.Id.ToString()
-                }); 
+                });
                 categoryMaterialVM.MaterialNameList = _unitOfWork.CategoryMaterial.GetAll().Select(u => new SelectListItem
                 {
                     Text = u.MaterialName,

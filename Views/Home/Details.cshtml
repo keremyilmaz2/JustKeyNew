@@ -1,16 +1,82 @@
-﻿@model Product
+﻿@model JustKeyNew.Models.ViewModels.CartVM
 
 <form method="post">
-    <input hidden asp-for="Id"/>
+    <input hidden asp-for="ShoppingCart.Product.Id" />
     <div class="card shadow border-0 mt-4 mb-4">
         <div class="card-header bg-secondary bg-gradient text-light py-4">
             <div class="row">
                 <div class="col-12 text-center">
-                    <h3 class="text-white text-uppercase">@Model.Title</h3>
-                    <p class="text-white-50 fw-semibold mb-0">by @Model.Description</p>
+                    <h3 class="text-white text-uppercase">@Model.ShoppingCart.Product.Title</h3>
                 </div>
             </div>
         </div>
-       
+        <div class="card-body">
+            <div class="py-3">
+                <div class="row">
+                    <div class="col-12 text-center pb-4">
+                        <a asp-action="Index" class="btn btn-outline-primary bg-gradient mb-2 fw-semibold btn-sm text-uppercase">
+                            <small>Back to home</small>
+                        </a>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12 col-lg-5 text-center mb-3">
+                        <img src="@Model.ShoppingCart.Product.ProductImageUrl" class="img-fluid rounded shadow-sm" />
+                    </div>
+                    <div class="col-12 col-lg-6 offset-lg-1">
+                        <div class="mb-4">
+                            <span class="badge bg-primary">@Model.ShoppingCart.Product.Category.Name</span>
+                        </div>
+                        <div class="mb-3">
+                            <h6 class="text-dark text-opacity-50">
+                                Price: <span class="fw-bold">@Model.ShoppingCart.Product.Price.ToString("c")</span>
+                            </h6>
+                        </div>
+                        <div class="mb-4">
+                            <p class="text-secondary lh-sm">@Model.ShoppingCart.Product.Description</p>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Select Extras:</label>
+                            <div class="card p-3">
+                                @for (var i = 0; i < Model.ShoppingCart.Product.ProductExtras.Count(); i++)
+                                {
+                                    var extra = Model.ShoppingCart.Product.ProductExtras.ElementAt(i);
+                                    <div class="form-check">
+                                        <input type="checkbox" asp-for="@Model.IsExtraSelected[i]" class="form-check-input" id="extraCheckBox_@i" />
+                                        <label class="form-check-label" for="extraCheckBox_@i">@extra.ExtraName - @extra.Price.ToString("c")</label>
+                                        <input type="hidden" asp-for="@extra.Id" />
+                                    </div>
+                                    @if (i < Model.ShoppingCart.Product.ProductExtras.Count() - 1)
+                                    {
+                                        <hr class="my-2" />
+                                    }
+                                }
+                            </div>
+                            <span asp-validation-for="@Model.IsExtraSelected" class="text-danger"></span>
+                        </div>
+
+                        <div class="row pl-2 mb-3">
+                            <div class="col-md-4">
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text bg-primary text-white border-0 fw-semibold"
+                                          id="inputGroup-sizing-default">
+                                        Count
+                                    </span>
+                                    <input asp-for="ShoppingCart.Count" type="number" value="1" class="form-control text-end"
+                                        aria-label="Sizing example input" aria-describedby="inputGroup-sizing-default" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary bg-gradient py-2 text-uppercase fw-semibold">
+                                Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </form>

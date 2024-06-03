@@ -70,6 +70,11 @@ namespace JustKeyNew.Controllers
                     Text = u.MaterialName,
                     Value = u.CategoryId.ToString()
                 }),
+                CategoryExtras = _unitOfWork.CategoryExtra.GetAll().Select(u => new SelectListItem
+                {
+                    Text = u.ExtraName,
+                    Value = u.CategoryId.ToString()
+                }),
                 Product = new Product()
             };
             if (id == null || id == 0)
@@ -187,6 +192,9 @@ namespace JustKeyNew.Controllers
             return View(productVM);
 
         }
+
+        
+
         [HttpPost]
         public IActionResult Content(ProductVM productVM)
         {
@@ -235,9 +243,115 @@ namespace JustKeyNew.Controllers
 
             }
 
-            return RedirectToAction("Index");
+            return RedirectToAction(nameof(ExtraSelect), new { id = productVM.Product.Id });
 
         }
+
+        public IActionResult ExtraSelect(int? id)
+        {
+            var product = _unitOfWork.Product.Get(u => u.Id == id, includeProperties: "ProductExtras");
+
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            var categoryExtras = _unitOfWork.CategoryExtra.GetAll(u => u.CategoryId == product.CategoryId).ToList();
+
+            var productVM = new ProductVM
+            {
+                CategoryList = _unitOfWork.Category.GetAll().Select(u => new SelectListItem
+                {
+                    Text = u.Name,
+                    Value = u.Id.ToString()
+                }).ToList(),
+                CategoryExtras = categoryExtras.Select(u => new SelectListItem
+                {
+                    Text = u.ExtraName,
+                    Value = u.Id.ToString()
+                }).ToList(),
+                Product = product
+            };
+
+            productVM.Product.ProductExtras = new List<ProductExtra>();
+            foreach (var categoryExtra in categoryExtras)
+            {
+                productVM.Product.ProductExtras.Add(new ProductExtra
+                {
+                    ExtraName = categoryExtra.ExtraName,
+                    Price = categoryExtra.Price,
+                    ProductId = product.Id
+                });
+            }
+
+            return View(productVM);
+        }
+
+        [HttpPost]
+        public IActionResult ExtraSelect(ProductVM productVM)
+        {
+            var product = _unitOfWork.Product.Get(u => u.Id == productVM.Product.Id, includeProperties: "ProductExtras");
+
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            if (product != null)
+            {
+                _unitOfWork.ProductExtra.RemoveRange(_unitOfWork.ProductExtra.GetAll(u => u.ProductId == product.Id));
+                _unitOfWork.Save();
+
+                var categoryExtras = _unitOfWork.CategoryExtra.GetAll(u => u.CategoryId == product.CategoryId).ToList();
+
+                for (int i = 0; i < categoryExtras.Count(); i++)
+                {
+                    if (productVM.IsExtraSelected[i])
+                    {
+                        var selectedExtra = categoryExtras[i];
+                        var productExtra = new ProductExtra
+                        {
+                            ExtraName = selectedExtra.ExtraName,
+                            Price = selectedExtra.Price,
+                            ProductId = product.Id
+                        };
+                        _unitOfWork.ProductExtra.Add(productExtra);
+                        _unitOfWork.Save();
+
+                        if (productVM.Product.ProductExtras == null)
+                        {
+                            productVM.Product.ProductExtras = new List<ProductExtra>();
+                        }
+                        productVM.Product.ProductExtras.Add(productExtra);
+                    }
+                }
+
+                product.ProductExtras = productVM.Product.ProductExtras;
+                _unitOfWork.Product.Update(product);
+                _unitOfWork.Save();
+
+                TempData["success"] = "Material created successfully.";
+                return RedirectToAction("Index");
+            }
+            else
+            {
+                productVM.CategoryList = _unitOfWork.Category.GetAll().Select(u => new SelectListItem
+                {
+                    Text = u.Name,
+                    Value = u.Id.ToString()
+                }).ToList();
+                productVM.CategoryExtras = _unitOfWork.CategoryExtra.GetAll(u => u.CategoryId == product.CategoryId).Select(u => new SelectListItem
+                {
+                    Text = u.ExtraName,
+                    Value = u.Id.ToString()
+                }).ToList();
+                productVM.Product = _unitOfWork.Product.Get(u => u.Id == productVM.Product.Id, includeProperties: "ProductExtras");
+
+                return View(productVM);
+            }
+        }
+
+
         public IActionResult Delete(int? id)
         {
             var productToBeDelete = _unitOfWork.Product.Get(u => u.Id == id);
