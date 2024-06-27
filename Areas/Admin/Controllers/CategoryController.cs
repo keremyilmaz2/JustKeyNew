@@ -9,8 +9,9 @@ using System.Linq;
 using Microsoft.AspNetCore.Http;
 using JustKeyNew.Models.ViewModels;
 
-namespace JustKeyNew.Controllers
+namespace JustKeyNew.Areas.Admin.Controllers
 {
+    [Area("Admin")]
     public class CategoryController : Controller
     {
         private readonly IUnitOfWork _unitOfWork;

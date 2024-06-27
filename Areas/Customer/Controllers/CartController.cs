@@ -5,8 +5,9 @@ using JustKeyNew.Utility;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
-namespace JustKeyNew.Controllers
+namespace JustKeyNew.Areas.Customer.Controllers
 {
+    [Area("Customer")]
     public class CartController : Controller
     {
         private readonly IUnitOfWork _unitOfWork;
@@ -98,8 +99,8 @@ namespace JustKeyNew.Controllers
                 var domain = Request.Scheme + "://" + Request.Host.Value + "/";
                 var options = new Stripe.Checkout.SessionCreateOptions
                 {
-                    SuccessUrl = domain + $"cart/OrderConfirmation?id={ShoppingCartVM.OrderHeader.Id}&paymentMethod={paymentMethod}",
-                    CancelUrl = domain + "cart/index",
+                    SuccessUrl = domain + $"customer/cart/OrderConfirmation?id={ShoppingCartVM.OrderHeader.Id}&paymentMethod={paymentMethod}",
+                    CancelUrl = domain + "customer/cart/index",
                     LineItems = new List<Stripe.Checkout.SessionLineItemOptions>(),
                     Mode = "payment",
                 };
@@ -157,12 +158,14 @@ namespace JustKeyNew.Controllers
                     _unitOfWork.OrderHeader.UpdateStatus(id, SD.StatusCreditCart, SD.PaymentStatusApproved);
                     _unitOfWork.Save();
                 }
+
             }
 
             var shoppingCarts = _unitOfWork.ShoppingCart.GetAll(includeProperties: "SelectedExtra").ToList();
             _unitOfWork.ShoppingCart.RemoveRange(shoppingCarts);
             _unitOfWork.Save();
-
+            var sessionId = HttpContext.Session.Id;
+            HttpContext.Session.SetInt32(SD.SessionCart, _unitOfWork.ShoppingCart.GetAll(u => u.SessionId == sessionId).Count());
             ViewBag.PaymentMethod = paymentMethod;
 
             return View(id);
@@ -179,10 +182,12 @@ namespace JustKeyNew.Controllers
 
         public IActionResult Minus(int cartId)
         {
+            var sessionId = HttpContext.Session.Id;
             var cartFromDb = _unitOfWork.ShoppingCart.Get(u => u.Id == cartId, tracked: true, includeProperties: "SelectedExtra");
             if (cartFromDb.Count == 1)
             {
                 _unitOfWork.ShoppingCart.Remove(cartFromDb);
+                HttpContext.Session.SetInt32(SD.SessionCart, _unitOfWork.ShoppingCart.GetAll(u => u.SessionId == sessionId).Count() - 1 );
             }
             else
             {
@@ -196,7 +201,9 @@ namespace JustKeyNew.Controllers
 
         public IActionResult Remove(int cartId)
         {
+            var sessionId = HttpContext.Session.Id;
             var cartFromDb = _unitOfWork.ShoppingCart.Get(u => u.Id == cartId, tracked: true, includeProperties: "SelectedExtra");
+            HttpContext.Session.SetInt32(SD.SessionCart, _unitOfWork.ShoppingCart.GetAll(u => u.SessionId == sessionId).Count() - 1);
             _unitOfWork.ShoppingCart.Remove(cartFromDb);
             _unitOfWork.Save();
 

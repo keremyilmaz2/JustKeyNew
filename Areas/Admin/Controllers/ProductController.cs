@@ -9,9 +9,9 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.IdentityModel.Tokens;
 using System.Collections.Generic;
 
-namespace JustKeyNew.Controllers
+namespace JustKeyNew.Areas.Admin.Controllers
 {
-
+    [Area("Admin")]
     public class ProductController : Controller
     {
         private readonly IUnitOfWork _unitOfWork;

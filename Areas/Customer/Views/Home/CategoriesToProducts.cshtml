@@ -29,12 +29,28 @@
                             <div class="pl-1">
                                 <p class="text-dark text-opacity-75 text-center nb-0">List Price: <span >@product.Price.ToString("c")</span></p>
                             </div>
+                            @if (product.Category.ProductCount)
+                            {
+                                <div class="pl-1">
+                                    <p class="text-dark text-opacity-75 text-center nb-0">Available Product: <span>@product.AvailableProducts</span></p>
+                                </div>
+                            }
                         </div>
+                        
+                        
                         <div>
-                            <a asp-action="Details" asp-route-productId="@product.Id" class="btn btn-primary bg-gradient border-0 form-control">
+                            <a asp-action="Details" asp-route-productId="@product.Id" class="btn btn-primary bg-gradient border-0  form-control">
                                 Details
                             </a>
                         </div>
+                        @if (User.IsInRole(SD.Role_Admin) && product.Category.ProductCount)
+                        {
+                            <div>
+                                <a asp-action="AddProductCount" asp-route-id="@product.Id" class="btn btn-primary bg-gradient border-0 form-control" style="margin-top: 10px;">
+                                    <i class="bi bi-plus-circle"></i>
+                                </a>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>

@@ -10,10 +10,10 @@ using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 
-namespace JustKeyNew.Controllers
+namespace JustKeyNew.Areas.Admin.Controllers
 {
-    
-    
+
+    [Area("Admin")]
     public class StockController : Controller
     {
         private readonly IUnitOfWork _unitOfWork;

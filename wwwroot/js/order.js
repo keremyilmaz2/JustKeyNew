@@ -3,17 +3,13 @@ $(document).ready(function () {
     var url = window.location.search;
     if (url.includes("cash")) {
         loadDataTable("cash");
-    }
-    else if (url.includes("completed")) {
+    } else if (url.includes("completed")) {
         loadDataTable("completed");
-    }
-    else if (url.includes("pending")) {
+    } else if (url.includes("pending")) {
         loadDataTable("pending");
-    }
-    else if (url.includes("creditCart")) {
+    } else if (url.includes("creditCart")) {
         loadDataTable("creditCart");
-    }
-    else {
+    } else {
         loadDataTable("all");
     }
 });
@@ -24,7 +20,7 @@ function loadDataTable(status) {
     }
 
     dataTable = $('#tblData').DataTable({
-        "ajax": { url: '/order/getall?status=' + status },
+        "ajax": { url : '/admin/order/getall?status=' + status },
         "columns": [
             { data: 'id', "width": "5%" },
             { data: 'name', "width": "15%" },
@@ -37,21 +33,19 @@ function loadDataTable(status) {
                 data: 'id',
                 "render": function (data, type, row) {
                     let buttons = `<div class="w-100 d-flex justify-content-center">
-                                    <a href="/order/details?orderId=${data}" class="btn btn-primary mx-2"> <i class="bi bi-pencil-square"></i></a>`;
+                                    <a href="/admin/order/details?orderId=${data}" class="btn btn-primary mx-2"> <i class="bi bi-pencil-square"></i></a>`;
 
                     if (row.orderStatus === 'Pending') {
-                        buttons += `<a href="/order/PendingToCash?id=${data}" class="btn btn-primary mx-2"> <i class="bi bi-cash-coin"></i></a>`;
+                        buttons += `<a href="/admin/order/PendingToCash?id=${data}" class="btn btn-primary mx-2"> <i class="bi bi-cash-coin"></i></a>`;
                     }
 
                     if (row.orderStatus === 'Cash' || row.orderStatus === 'CreditCart') {
                         if (row.orderDelivered !== 'Shipped') {
-                            buttons += `<a href="/order/OrderDelivered?id=${data}" class="btn btn-primary mx-2"> <i class="bi bi-check-square-fill"></i></a>`;
+                            buttons += `<a href="/admin/order/OrderDelivered?id=${data}" class="btn btn-primary mx-2"> <i class="bi bi-check-square-fill"></i></a>`;
                         }
-                        
                     }
 
-                    buttons += `</div >`;
-
+                    buttons += `</div>`;
                     return buttons;
                 },
                 "width": "10%"
@@ -60,11 +54,9 @@ function loadDataTable(status) {
         "createdRow": function (row, data, dataIndex) {
             if (data.orderStatus === "Cancelled") {
                 $(row).addClass('bg-danger text-white');
-            }
-            else if (data.orderStatus === "Cash") {
+            } else if (data.orderStatus === "Cash") {
                 $(row).addClass('bg-success text-white');
-            }
-            else if (data.orderStatus === "CreditCart") {
+            } else if (data.orderStatus === "CreditCart") {
                 $(row).addClass('bg-info text-white');
             }
         }

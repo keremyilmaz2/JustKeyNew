@@ -31,7 +31,7 @@
                                             <ul class="list-group mt-2">
                                                 @foreach (var detail in orderVM.OrderDetail)
                                                 {
-                                                    <li >
+                                                    <li>
                                                         <div class="d-flex justify-content-between">
                                                             <div>
                                                                 <strong>@detail.Product.Title</strong>
@@ -70,7 +70,22 @@
                         </ul>
                     </div>
                     <div class="col-12 col-lg-5 offset-lg-1">
-                        <!-- Additional content can be placed here -->
+                        <div class="card">
+                            <div class="card-header bg-info text-light">
+                                End Of Day's Product Count
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-group">
+                                    @if (ViewBag.ProductCountDict != null)
+                                    {
+                                        @foreach (var item in (Dictionary<string, int>)ViewBag.ProductCountDict)
+                                        {
+                                            <li class="list-group-item">@item.Key: @item.Value adet</li>
+                                        }
+                                    }
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -87,6 +102,6 @@
     }
 
         .nav-link:hover {
-            color: dimgrey !important; /* İstediğiniz rengi buraya yazabilirsiniz */
+            color: dimgrey !important;
         }
 </style>

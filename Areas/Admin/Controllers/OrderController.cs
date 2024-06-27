@@ -11,9 +11,11 @@ using JustKeyNew.DataAccess.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Stripe;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
-namespace JustKeyNew.Controllers
+namespace JustKeyNew.Areas.Admin.Controllers
 {
+    [Area("Admin")]
     public class OrderController : Controller
     {
         private readonly IUnitOfWork _unitOfWork;
@@ -46,28 +48,46 @@ namespace JustKeyNew.Controllers
 
         public IActionResult EndOfDay()
         {
-            
             DateTime dateTime = DateTime.Today;
-
             var objOrderHeaderList = _unitOfWork.OrderHeader.GetAll(u => u.OrderDate.Date == dateTime).ToList();
             var orderVmList = new List<OrderVM>();
+
+            var productCountDict = new Dictionary<string, int>();
+
             foreach (var orderHeader in objOrderHeaderList)
             {
                 int orderHeaderId = orderHeader.Id;
+                var orderDetails = _unitOfWork.OrderDetail.GetAll(u => u.OrderHeaderId == orderHeaderId, includeProperties: "Product,DetailExtras").ToList();
+
+                foreach (var detail in orderDetails)
+                {
+                    var productName = detail.Product.Title;
+                    if (productCountDict.ContainsKey(productName))
+                    {
+                        productCountDict[productName] += detail.Count;
+                    }
+                    else
+                    {
+                        productCountDict[productName] = detail.Count;
+                    }
+                }
 
                 OrderVM orderVM = new()
                 {
                     OrderHeader = orderHeader,
-                    OrderDetail = _unitOfWork.OrderDetail.GetAll(u => u.OrderHeaderId == orderHeaderId, includeProperties: "Product,DetailExtras").ToList()
+                    OrderDetail = orderDetails,
+                    ProductList = new Dictionary<string, int>(productCountDict)
                 };
 
                 orderVmList.Add(orderVM);
             }
 
-
+            // To pass the product count dictionary separately to the view, add it to the ViewBag
+            ViewBag.ProductCountDict = productCountDict;
 
             return View(orderVmList);
         }
+
 
 
         [HttpPost]
