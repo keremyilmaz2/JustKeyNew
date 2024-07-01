@@ -1,7 +1,11 @@
 ﻿using JustKeyNew.Utility;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using System;
+using System.IO;
+using System.Net.Http;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace JustKeyNew.Services
 {
@@ -21,7 +25,7 @@ namespace JustKeyNew.Services
 
         public async Task<string> GetPrintersAsync()
         {
-            var response = await _httpClient.GetAsync("printers");
+            var response = await _httpClient.GetAsync("https://api.printnode.com/printers");
             response.EnsureSuccessStatusCode(); // Başarılı yanıt kontrolü
 
             return await response.Content.ReadAsStringAsync();
@@ -29,23 +33,42 @@ namespace JustKeyNew.Services
 
         public async Task<string> PrintFileAsync(string printerId, string filePath)
         {
-            var fileBytes = await File.ReadAllBytesAsync(filePath);
-            var fileContent = Convert.ToBase64String(fileBytes);
+            // Dosya uzantısını kontrol et
+            var fileExtension = Path.GetExtension(filePath)?.ToLower();
+            Console.WriteLine($"Dosya uzantısı: {fileExtension}");
+            //if (fileExtension != ".txt")
+            //{
+            //    throw new NotSupportedException("Yalnızca .txt dosyaları desteklenmektedir.");
+            //}
+
+            // Dosyayı base64 formatına dönüştür
+            var fileContent = await ConvertTextFileToBase64(filePath);
 
             var printJob = new
             {
                 printerId = printerId,
                 title = Path.GetFileName(filePath),
-                contentType = "raw_base64",
+                contentType = "raw_base64", // contentType olarak raw_base64 kullanılıyor
                 content = fileContent,
                 source = "My Application"
             };
 
             var content = new StringContent(JsonConvert.SerializeObject(printJob), Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync("printjobs", content);
-            response.EnsureSuccessStatusCode(); // Başarılı yanıt kontrolü
+            var response = await _httpClient.PostAsync("https://api.printnode.com/printjobs", content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Print job failed with status code {response.StatusCode}: {error}");
+            }
 
             return await response.Content.ReadAsStringAsync();
+        }
+
+        private async Task<string> ConvertTextFileToBase64(string filePath)
+        {
+            var fileContent = await File.ReadAllTextAsync(filePath);
+            return Convert.ToBase64String(Encoding.UTF8.GetBytes(fileContent));
         }
     }
 }

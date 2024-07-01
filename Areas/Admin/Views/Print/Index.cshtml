@@ -1,20 +1,19 @@
 ﻿@using Newtonsoft.Json
 @{
     ViewBag.Title = "Printers";
+    var selectedPrinterId = ViewBag.PrinterId as string;
 }
 
 <h2>Printers</h2>
-<form asp-action="Print" method="post" enctype="multipart/form-data">
+<form asp-action="Print" method="post">
     <label for="printerId">Select Printer:</label>
     <select id="printerId" name="printerId">
         @foreach (var printer in JsonConvert.DeserializeObject<List<dynamic>>(ViewBag.Printers))
         {
-            <option value="@printer.id">@printer.name</option>
+            <option value="@printer.id" >@printer.name</option>
         }
     </select>
     <br />
-    <label for="file">Select File:</label>
-    <input type="file" id="file" name="file" />
-    <br />
-    <button type="submit">Print</button>
+    
+    <button type="submit">Save Printer</button>
 </form>

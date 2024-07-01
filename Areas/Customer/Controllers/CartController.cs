@@ -2,8 +2,23 @@
 using JustKeyNew.Models;
 using JustKeyNew.Models.ViewModels;
 using JustKeyNew.Utility;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp;
+using System.Drawing;
+using System;
+using SixLabors.Fonts;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using System.Security.Claims;
+using System.Drawing.Imaging;
+using JustKeyNew.Services;
+using System.Drawing.Printing;
+using Microsoft.Extensions.Options;
+using PrinterSettings = JustKeyNew.Utility.PrinterSettings;
 
 namespace JustKeyNew.Areas.Customer.Controllers
 {
@@ -11,12 +26,19 @@ namespace JustKeyNew.Areas.Customer.Controllers
     public class CartController : Controller
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly IPrintNodeService _printNodeService;
+        private readonly Utility.PrinterSettings _printerSettings;
+
         [BindProperty]
         public ShoppingCartVM ShoppingCartVM { get; set; }
 
-        public CartController(IUnitOfWork unitOfWork)
+        public CartController(IUnitOfWork unitOfWork, IWebHostEnvironment webHostEnvironment, IPrintNodeService printNodeService, IOptions<PrinterSettings> printerSettings)
         {
             _unitOfWork = unitOfWork;
+            _webHostEnvironment = webHostEnvironment;
+            _printNodeService = printNodeService;
+            _printerSettings = printerSettings.Value;
         }
 
         public IActionResult Index()
@@ -151,15 +173,46 @@ namespace JustKeyNew.Areas.Customer.Controllers
             {
                 var service = new Stripe.Checkout.SessionService();
                 var session = service.Get(orderHeader.SessionId);
-
                 if (session.PaymentStatus.ToLower() == "paid")
                 {
                     _unitOfWork.OrderHeader.UpdateStripePaymentID(id, session.Id, session.PaymentIntentId);
                     _unitOfWork.OrderHeader.UpdateStatus(id, SD.StatusCreditCart, SD.PaymentStatusApproved);
                     _unitOfWork.Save();
                 }
-
             }
+
+            string orderheaderid = orderHeader.Id.ToString();
+            string wwwRootPath = _webHostEnvironment.WebRootPath;
+            string textFilesPath = Path.Combine(wwwRootPath, "textfiles", "order");
+
+            if (!Directory.Exists(textFilesPath))
+            {
+                Directory.CreateDirectory(textFilesPath);
+            }
+
+            string outputFilePath = Path.Combine(textFilesPath, $"{orderheaderid}.txt");
+            string text = $"{orderHeader.TableNo}\n---------------------------------\n";
+            int orderHeaderId = orderHeader.Id;
+            var orderDetails = _unitOfWork.OrderDetail.GetAll(u => u.OrderHeaderId == orderHeaderId, includeProperties: "Product,DetailExtras").ToList();
+
+            foreach (var orderDetail in orderDetails)
+            {
+                text += $"{orderDetail.Product.Title.ToUpper()} X{orderDetail.Count} \n";
+                foreach (var extras in orderDetail.DetailExtras)
+                {
+                    text += $"  * {extras.ExtraName}\n";
+                }
+            }
+
+            // Sipariş metninin altına boşluk eklemek
+            for (int i = 0; i < 4; i++)
+            {
+                text += "\n";
+            }
+
+            System.IO.File.WriteAllText(outputFilePath, text);
+
+            _printNodeService.PrintFileAsync(_printerSettings.PrinterId, outputFilePath).Wait();
 
             var shoppingCarts = _unitOfWork.ShoppingCart.GetAll(includeProperties: "SelectedExtra").ToList();
             _unitOfWork.ShoppingCart.RemoveRange(shoppingCarts);
@@ -170,6 +223,11 @@ namespace JustKeyNew.Areas.Customer.Controllers
 
             return View(id);
         }
+
+
+
+
+
 
         public IActionResult Plus(int cartId)
         {
